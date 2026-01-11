@@ -4,6 +4,7 @@ import type { AdaxRoom, AdaxContentResponse } from './adaxApi';
 
 export class ADAXPlatformAccessory {
   private service: Service;
+  private updateInterval: NodeJS.Timeout;
 
   constructor(
     private readonly platform: ADAXHomebridgePlatform,
@@ -12,7 +13,7 @@ export class ADAXPlatformAccessory {
   ) {
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'ADAX')
-      .setCharacteristic(this.platform.Characteristic.Model, 'WiFi Heater Dummy')
+      .setCharacteristic(this.platform.Characteristic.Model, 'WiFi Heater')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.roomId.toString());
 
     this.service =
@@ -27,7 +28,7 @@ export class ADAXPlatformAccessory {
     this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
       .setProps({
         minValue: 5,
-        maxValue: 30,
+        maxValue: 35,
         minStep: 0.5,
       })
       .onSet(this.handleTargetTemperatureSet.bind(this));
@@ -36,14 +37,23 @@ export class ADAXPlatformAccessory {
       .getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
       .onSet(this.handleTargetStateSet.bind(this));
 
+    // Initial update
     this.updateValues();
+
+    // Periodic updates every 30 seconds to keep HomeKit in sync
+    this.updateInterval = setInterval(() => this.updateValues(), 30000);
   }
 
   async handleTargetTemperatureSet(value: CharacteristicValue): Promise<void> {
     const temperature = value as number;
+    const tempCentidegrees = temperature * 100;
     this.platform.log.info(`[ADAX] Sat temperatur i rum ${this.roomId} til ${temperature}°C`);
+
+    // Record pending temperature immediately to avoid showing stale API values
+    this.platform.setPendingTemperature(this.roomId, tempCentidegrees);
+
     try {
-      await this.platform.client.setRoomTemperature(this.roomId, temperature * 100);
+      await this.platform.client.setRoomTemperature(this.roomId, tempCentidegrees);
     } catch (error) {
       this.platform.log.warn(`[ADAX] Kunne ikke opdatere temperatur i rum ${this.roomId}: ${error}`);
     }
