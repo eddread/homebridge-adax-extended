@@ -124,9 +124,11 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
         accessory.context.roomId = room.id;
         new ADAXPlatformAccessory(this, accessory, room.id);
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-        this.log.info(`Added new room: ${room.name || room.id}`);
+        this.log.info(`Tilføjet nyt rum: ${room.name || room.id}`);
       } else {
-        this.log.debug(`Room already exists: ${room.name || room.id}`);
+        // Restore handlers for cached accessory
+        new ADAXPlatformAccessory(this, accessory, room.id);
+        this.log.info(`Gendannet rum fra cache: ${room.name || room.id}`);
       }
     }
 
