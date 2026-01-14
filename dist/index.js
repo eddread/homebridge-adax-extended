@@ -1,0 +1,10 @@
+"use strict";
+const settings_1 = require("./settings");
+const platform_1 = require("./platform");
+module.exports = (api) => {
+    if (!api) {
+        throw new Error('Homebridge API could not be initialized.');
+    }
+    api.registerPlatform(settings_1.PLATFORM_NAME, platform_1.ADAXHomebridgePlatform);
+};
+//# sourceMappingURL=index.js.map
